@@ -1,0 +1,33 @@
+---
+interface Props {
+  label: string;
+  value: string;
+  subValue?: string;
+  trend?: 'up' | 'down' | 'neutral';
+  highlight?: boolean;
+}
+
+const { label, value, subValue, trend = 'neutral', highlight = false } = Astro.props;
+
+const trendColors = {
+  up: 'text-finance-green',
+  down: 'text-finance-red',
+  neutral: 'text-slate-900'
+};
+---
+
+<div class="bg-white border border-slate-200 p-5 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+  <div class="text-slate-500 text-xs font-medium uppercase tracking-wide mb-2">
+    {label}
+  </div>
+  
+  <div class={`text-2xl font-bold ${trendColors[trend]} tracking-tight`}>
+    {value}
+  </div>
+  
+  {subValue && (
+    <div class="text-sm text-slate-600 mt-1">
+      {subValue}
+    </div>
+  )}
+</div>

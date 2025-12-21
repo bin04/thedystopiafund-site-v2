@@ -1,0 +1,40 @@
+---
+interface Props {
+  title: string;
+  source: string;
+  date: string;
+  url: string;
+  score?: string;
+  category?: string;
+}
+
+const { title, source, date, url, score, category } = Astro.props;
+---
+
+<a href={url} target="_blank" rel="noopener" class="block group bg-white border border-slate-200 hover:border-accent-blue hover:shadow-md transition-all duration-200 rounded-lg overflow-hidden">
+  <div class="p-4">
+    <h3 class="text-slate-900 font-semibold leading-snug group-hover:text-accent-blue transition-colors mb-2">
+      {title}
+    </h3>
+    
+    <div class="flex items-center justify-between text-sm text-slate-500 gap-3">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="font-medium text-slate-700">{source}</span>
+        {category && (
+          <>
+            <span class="text-slate-300">·</span>
+            <span class="text-slate-500">{category}</span>
+          </>
+        )}
+        <span class="text-slate-300">·</span>
+        <span>{date}</span>
+      </div>
+      
+      {score && (
+        <div class="shrink-0 px-2 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded">
+          {score}
+        </div>
+      )}
+    </div>
+  </div>
+</a>

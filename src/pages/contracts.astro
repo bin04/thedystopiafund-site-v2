@@ -18,7 +18,7 @@ const totalValue = contracts?.reduce((sum, c) => sum + (parseFloat(c.award_amoun
 const avgDystopiaScore = contracts?.length ? contracts.reduce((sum, c) => sum + c.dystopia_score, 0) / contracts.length : 0;
 ---
 
-<Layout title="Government Contracts - The Dystopia Fund">
+<Layout title="Government Contracts - The Dystopia Fund" darkMode={true}>
   <div class="max-w-6xl mx-auto px-4 py-6">
     <h1 class="text-3xl font-bold text-white mb-6">Government Contracts</h1>
 

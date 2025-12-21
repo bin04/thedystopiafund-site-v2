@@ -1,0 +1,36 @@
+<svg width="500" height="500" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+  <!-- Simplified surveillance camera that actually renders -->
+  
+  <!-- Wall mount -->
+  <rect x="50" y="200" width="40" height="60" fill="white" opacity="0.3" rx="4"/>
+  
+  <!-- Mounting arm -->
+  <rect x="85" y="225" width="60" height="10" fill="white" opacity="0.3" rx="2"/>
+  
+  <!-- Camera body -->
+  <ellipse cx="200" cy="230" rx="80" ry="45" fill="white" opacity="0.25"/>
+  
+  <!-- Camera front cone -->
+  <polygon points="280,230 320,210 320,250" fill="white" opacity="0.3"/>
+  
+  <!-- Lens -->
+  <circle cx="320" cy="230" r="25" fill="white" opacity="0.4"/>
+  <circle cx="320" cy="230" r="15" fill="white" opacity="0.5"/>
+  <circle cx="320" cy="230" r="8" fill="white" opacity="0.6"/>
+  
+  <!-- Top indicator light -->
+  <circle cx="200" cy="200" r="6" fill="white" opacity="0.4"/>
+  
+  <!-- Cable -->
+  <path d="M 65 195 Q 60 180 55 160 Q 50 140 45 120" 
+        stroke="white" 
+        stroke-width="3" 
+        fill="none" 
+        opacity="0.25"
+        stroke-linecap="round"/>
+  
+  <!-- Field of view lines (very subtle) -->
+  <line x1="345" y1="230" x2="450" y2="180" stroke="white" stroke-width="1" opacity="0.15" stroke-dasharray="4,4"/>
+  <line x1="345" y1="230" x2="450" y2="280" stroke="white" stroke-width="1" opacity="0.15" stroke-dasharray="4,4"/>
+  <line x1="345" y1="230" x2="450" y2="230" stroke="white" stroke-width="1" opacity="0.15" stroke-dasharray="4,4"/>
+</svg>
