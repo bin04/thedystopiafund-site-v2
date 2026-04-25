@@ -1,0 +1,300 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+);
+
+const { data: tremors, error } = await supabase
+  .from('prediction_tremors')
+  .select('created_at, market_id, question, polymarket_url, headline, summary, severity, confidence, score, raw_data')
+  .order('created_at', { ascending: false })
+  .limit(50);
+
+const records = (tremors ?? []).filter((item) => {
+  const hasCoreText = [item.question, item.headline, item.summary].some((value) => {
+    return typeof value === 'string' && value.trim().length > 0;
+  });
+
+  return Boolean(item.market_id || hasCoreText);
+});
+
+const hiddenInvalidCount = Math.max((tremors ?? []).length - records.length, 0);
+
+const severityRank = {
+  high: 3,
+  medium: 2,
+  low: 1
+};
+
+const severityTone = {
+  high: 'bg-red-100 text-red-700 border-red-200',
+  medium: 'bg-amber-100 text-amber-700 border-amber-200',
+  low: 'bg-slate-100 text-slate-700 border-slate-200'
+};
+
+const totalTremors = records.length;
+const highCount = records.filter((item) => item.severity === 'high').length;
+const mediumCount = records.filter((item) => item.severity === 'medium').length;
+const averageConfidence = totalTremors
+  ? records.reduce((sum, item) => sum + Number(item.confidence || 0), 0) / totalTremors
+  : 0;
+
+const lead = [...records].sort((a, b) => {
+  const sev = (severityRank[b.severity] || 0) - (severityRank[a.severity] || 0);
+  if (sev !== 0) return sev;
+  return Number(b.score || 0) - Number(a.score || 0);
+})[0] ?? null;
+
+function formatDate(value) {
+  if (!value) return 'Unknown';
+  return new Date(value).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+
+function asNumber(value, digits = 2) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toFixed(digits) : null;
+}
+
+function money(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return `$${Math.round(n).toLocaleString()}`;
+}
+
+function percent(value, digits = 1) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return `${(n * 100).toFixed(digits)}%`;
+}
+---
+
+<Layout title="Predictions | The Dystopia Fund">
+  <div class="border-b border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
+    <div class="max-w-7xl mx-auto px-4 py-14">
+      <div class="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] lg:items-end">
+        <div>
+          <p class="text-xs font-mono uppercase tracking-[0.3em] text-red-400 mb-3">Prediction Market Tremors</p>
+          <h1 class="text-4xl md:text-5xl font-bold text-white leading-tight">
+            Where the crowd twitches before the news catches up.
+          </h1>
+          <p class="mt-4 max-w-2xl text-slate-300 text-base md:text-lg leading-relaxed">
+            We watch Polymarket for sharp repricings, outsized notional flow, and the sort of collective shiver that suggests somebody knows, fears, or imagines something first.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="rounded-lg border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+            <div class="text-xs uppercase tracking-wide text-slate-400 mb-1">Recent Tremors</div>
+            <div class="text-3xl font-bold text-white">{totalTremors}</div>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+            <div class="text-xs uppercase tracking-wide text-slate-400 mb-1">High Severity</div>
+            <div class="text-3xl font-bold text-red-400">{highCount}</div>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+            <div class="text-xs uppercase tracking-wide text-slate-400 mb-1">Medium Severity</div>
+            <div class="text-3xl font-bold text-amber-300">{mediumCount}</div>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+            <div class="text-xs uppercase tracking-wide text-slate-400 mb-1">Avg Confidence</div>
+            <div class="text-3xl font-bold text-white">{(averageConfidence * 100).toFixed(0)}%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 py-10">
+    {error && (
+      <div class="mb-8 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        Prediction tremors could not be loaded from Supabase right now.
+      </div>
+    )}
+
+    {lead && (
+      <section class="mb-10">
+        <div class="mb-4 flex items-center justify-between gap-4">
+          <h2 class="text-2xl font-bold text-slate-900">Lead Signal</h2>
+          <span class={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${severityTone[lead.severity] || severityTone.low}`}>
+            {lead.severity}
+          </span>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+          <article class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="flex flex-wrap items-center gap-3 text-xs font-mono uppercase tracking-wide text-slate-500">
+              <span>{formatDate(lead.created_at)}</span>
+              {lead.market_id && <span>Market {lead.market_id}</span>}
+            </div>
+            <h3 class="mt-4 text-2xl font-bold text-slate-900 leading-tight">
+              {lead.headline || lead.question}
+            </h3>
+            <p class="mt-3 text-base leading-relaxed text-slate-600">
+              {lead.summary || 'No summary was stored for this tremor.'}
+            </p>
+            <p class="mt-5 text-sm leading-relaxed text-slate-700">
+              {lead.question}
+            </p>
+            {lead.polymarket_url && (
+              <a
+                href={lead.polymarket_url}
+                target="_blank"
+                rel="noopener"
+                class="mt-5 inline-flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-950 transition-colors"
+              >
+                Open market
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5h5m0 0v5m0-5L10 14"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 9v10h10"/>
+                </svg>
+              </a>
+            )}
+          </article>
+
+          <aside class="rounded-lg border border-slate-200 bg-slate-50 p-5">
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Signal Metrics</h3>
+            <dl class="mt-4 space-y-4">
+              <div class="flex items-center justify-between gap-4">
+                <dt class="text-sm text-slate-500">Score</dt>
+                <dd class="text-base font-semibold text-slate-900">{asNumber(lead.score, 1) ?? 'n/a'}</dd>
+              </div>
+              <div class="flex items-center justify-between gap-4">
+                <dt class="text-sm text-slate-500">Confidence</dt>
+                <dd class="text-base font-semibold text-slate-900">{percent(lead.confidence, 0) ?? 'n/a'}</dd>
+              </div>
+              <div class="flex items-center justify-between gap-4">
+                <dt class="text-sm text-slate-500">Largest trade</dt>
+                <dd class="text-base font-semibold text-slate-900">{money(lead.raw_data?.largest_trade_usd ?? lead.raw_data?.notable_trade?.notional_usd) ?? 'n/a'}</dd>
+              </div>
+              <div class="flex items-center justify-between gap-4">
+                <dt class="text-sm text-slate-500">24h volume</dt>
+                <dd class="text-base font-semibold text-slate-900">{money(lead.raw_data?.volume24hr) ?? 'n/a'}</dd>
+              </div>
+              <div class="flex items-center justify-between gap-4">
+                <dt class="text-sm text-slate-500">1w repricing</dt>
+                <dd class="text-base font-semibold text-slate-900">{percent(lead.raw_data?.one_week_price_change) ?? 'n/a'}</dd>
+              </div>
+              <div class="flex items-center justify-between gap-4">
+                <dt class="text-sm text-slate-500">Dominant outcome</dt>
+                <dd class="text-base font-semibold text-slate-900">{lead.raw_data?.dominant_outcome ?? 'n/a'}</dd>
+              </div>
+            </dl>
+          </aside>
+        </div>
+      </section>
+    )}
+
+    <section>
+      <div class="mb-4 flex items-center justify-between gap-4">
+        <h2 class="text-2xl font-bold text-slate-900">Recent Findings</h2>
+        <p class="text-sm text-slate-500">Newest first, with the sharpest narrative on top.</p>
+      </div>
+
+      {hiddenInvalidCount > 0 && (
+        <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+          Hidden {hiddenInvalidCount} incomplete legacy entr{hiddenInvalidCount === 1 ? 'y' : 'ies'} with empty fields.
+        </div>
+      )}
+
+      {records.length > 0 ? (
+        <div class="space-y-4">
+          {records.map((item) => (
+            <article class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-3">
+                    <span class={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${severityTone[item.severity] || severityTone.low}`}>
+                      {item.severity}
+                    </span>
+                    <span class="text-xs font-mono uppercase tracking-wide text-slate-500">{formatDate(item.created_at)}</span>
+                    {item.raw_data?.event_title && (
+                      <span class="text-xs font-mono uppercase tracking-wide text-slate-400">{item.raw_data.event_title}</span>
+                    )}
+                  </div>
+
+                  <h3 class="mt-3 text-xl font-bold text-slate-900 leading-snug">
+                    {item.headline || item.question}
+                  </h3>
+                  <p class="mt-2 text-slate-600 leading-relaxed">
+                    {item.summary || 'No summary was stored for this tremor.'}
+                  </p>
+                  <p class="mt-3 text-sm text-slate-700 leading-relaxed">
+                    {item.question}
+                  </p>
+                </div>
+
+                <div class="grid shrink-0 grid-cols-2 gap-3 lg:w-64">
+                  <div class="rounded-md bg-slate-50 px-3 py-2">
+                    <div class="text-[11px] uppercase tracking-wide text-slate-500">Score</div>
+                    <div class="mt-1 text-lg font-bold text-slate-900">{asNumber(item.score, 1) ?? 'n/a'}</div>
+                  </div>
+                  <div class="rounded-md bg-slate-50 px-3 py-2">
+                    <div class="text-[11px] uppercase tracking-wide text-slate-500">Confidence</div>
+                    <div class="mt-1 text-lg font-bold text-slate-900">{percent(item.confidence, 0) ?? 'n/a'}</div>
+                  </div>
+                  <div class="rounded-md bg-slate-50 px-3 py-2">
+                    <div class="text-[11px] uppercase tracking-wide text-slate-500">Largest Trade</div>
+                    <div class="mt-1 text-sm font-semibold text-slate-900">
+                      {money(item.raw_data?.largest_trade_usd ?? item.raw_data?.notable_trade?.notional_usd) ?? 'n/a'}
+                    </div>
+                  </div>
+                  <div class="rounded-md bg-slate-50 px-3 py-2">
+                    <div class="text-[11px] uppercase tracking-wide text-slate-500">1W Move</div>
+                    <div class="mt-1 text-sm font-semibold text-slate-900">
+                      {percent(item.raw_data?.one_week_price_change) ?? 'n/a'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 flex flex-wrap items-center gap-4 text-sm">
+                {item.raw_data?.dominant_outcome && (
+                  <span class="text-slate-500">
+                    Dominant outcome:
+                    <span class="ml-1 font-semibold text-slate-800">{item.raw_data.dominant_outcome}</span>
+                  </span>
+                )}
+                {item.raw_data?.recent_trade_count != null && (
+                  <span class="text-slate-500">
+                    Large trades:
+                    <span class="ml-1 font-semibold text-slate-800">{item.raw_data.recent_trade_count}</span>
+                  </span>
+                )}
+                {item.polymarket_url && (
+                  <a
+                    href={item.polymarket_url}
+                    target="_blank"
+                    rel="noopener"
+                    class="inline-flex items-center gap-2 font-medium text-slate-700 hover:text-slate-950 transition-colors"
+                  >
+                    Open market
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5h5m0 0v5m0-5L10 14"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 9v10h10"/>
+                    </svg>
+                  </a>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
+          <h3 class="text-xl font-semibold text-slate-900">No tremors recorded yet</h3>
+          <p class="mt-2 text-slate-500">
+            The detector has not written anything to `prediction_tremors` yet, or the table is not publicly readable.
+          </p>
+        </div>
+      )}
+    </section>
+  </div>
+</Layout>

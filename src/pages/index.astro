@@ -34,6 +34,22 @@ const { data: newsEditor } = await supabase
   .order('published_at', { ascending: false })
   .limit(3);
 
+const { data: generatedImages } = await supabase
+  .from('generated_images')
+  .select('id, title, image_url, slug, created_at')
+  .eq('is_published', true)
+  .order('created_at', { ascending: false })
+  .limit(4);
+
+function visionImg(url: string, width = 900) {
+  if (!url) return url;
+  return url
+    .replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')
+    + `?width=${width}&quality=72&format=webp`;
+}
+
+const featuredImage = generatedImages?.[0] ?? null;
+const scrollerImages = generatedImages ?? [];
 
 const { data: newsArticles } = await supabase
   .from('news_articles_dystopia')
@@ -51,11 +67,9 @@ const stats = latestSnapshot ? {
 ---
 
 <Layout title="The Dystopia Fund">
-  {/* HERO SECTION */}
   <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white relative overflow-hidden">
-    {/* Ghosted surveillance camera background */}
     <div class="absolute inset-0 bg-[url('/Gemini_Generated_Image_w9l5d5w9l5d5w9l5.png')] bg-no-repeat bg-right bg-cover opacity-40"></div>
-    
+
     <div class="max-w-7xl mx-auto px-4 py-16 relative z-10">
       <div class="max-w-3xl">
         <h1 class="text-4xl md:text-5xl font-bold mb-4 leading-tight">
@@ -64,8 +78,7 @@ const stats = latestSnapshot ? {
         <p class="text-xl text-slate-300 mb-8">
           When civil unrest becomes profitable, we capitalize. The Dystopia Fund tracks the correlation between social breakdown and market performance.
         </p>
-        
-        {/* KEY METRICS */}
+
         {stats && (
           <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div class="bg-white/10 backdrop-blur-sm border border-white/20 p-4 rounded-lg">
@@ -89,36 +102,34 @@ const stats = latestSnapshot ? {
   </div>
 
   <div class="max-w-7xl mx-auto px-4 py-12">
-    
-    {/* PERFORMANCE STATS */}
     {stats && (
       <div class="mb-12">
         <h2 class="text-2xl font-bold text-slate-900 mb-6">Performance Overview</h2>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatsCard 
-            label="24H P&L" 
+          <StatsCard
+            label="24H P&L"
             value={`${stats.dailyPL >= 0 ? '+' : ''}$${stats.dailyPL.toFixed(2)}`}
             subValue={`${stats.dailyPLPercent >= 0 ? '+' : ''}${stats.dailyPLPercent}%`}
             trend={stats.dailyPL >= 0 ? 'up' : 'down'}
             highlight={true}
           />
-          <StatsCard 
-            label="Portfolio Value" 
+          <StatsCard
+            label="Portfolio Value"
             value={`$${stats.totalValue.toLocaleString()}`}
             subValue="USD"
             trend="neutral"
           />
           {stats.topGainer && (
-            <StatsCard 
-              label="Top Gainer" 
+            <StatsCard
+              label="Top Gainer"
               value={stats.topGainer.symbol}
               subValue={`+${stats.topGainer.plPercent}%`}
               trend="up"
             />
           )}
           {stats.topLoser && (
-            <StatsCard 
-              label="Top Loser" 
+            <StatsCard
+              label="Top Loser"
               value={stats.topLoser.symbol}
               subValue={`${stats.topLoser.plPercent}%`}
               trend="down"
@@ -127,14 +138,84 @@ const stats = latestSnapshot ? {
         </div>
       </div>
     )}
-    
-    {/* MAIN CONTENT */}
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      
-      {/* LEFT COLUMN: NEWS & INSIGHTS */}
       <div class="lg:col-span-2 space-y-8">
-        
-        {/* OBSERVATIONS */}
+        {featuredImage && (
+          <section>
+            <div class="mb-4 flex items-center justify-between gap-4">
+              <h2 class="text-2xl font-bold text-slate-900">Latest Vision</h2>
+              <a
+                href="/visions"
+                class="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors"
+              >
+                See all visions
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </a>
+            </div>
+
+            <a
+              href="/visions"
+              class="group block overflow-hidden rounded-lg border border-slate-200 bg-slate-950 shadow-sm"
+            >
+              <div class="relative aspect-[16/10] overflow-hidden">
+                <img
+                  src={visionImg(featuredImage.image_url, 1200)}
+                  alt={featuredImage.title ?? 'AI Dystopian Vision'}
+                  class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  loading="eager"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent"></div>
+                <div class="absolute inset-x-0 bottom-0 p-6">
+                  <p class="mb-2 text-xs font-mono uppercase tracking-[0.25em] text-red-400">AI Vision</p>
+                  <h3 class="max-w-2xl text-2xl font-bold leading-snug text-white">
+                    {featuredImage.title ?? 'Untitled Vision'}
+                  </h3>
+                </div>
+              </div>
+            </a>
+
+            {scrollerImages.length > 1 && (
+              <div class="mt-4 flex gap-3 overflow-x-auto pb-1 scrollbar-hide" style="scroll-snap-type:x mandatory">
+                {scrollerImages.map((img) => (
+                  <a
+                    href="/visions"
+                    class="group flex-none w-44 rounded-lg overflow-hidden border border-slate-200 bg-white hover:border-red-300 transition-all duration-200"
+                    style="scroll-snap-align:start"
+                  >
+                    <div class="relative aspect-square overflow-hidden bg-slate-100">
+                      <img
+                        src={visionImg(img.image_url, 300)}
+                        alt={img.title ?? 'Vision'}
+                        loading="lazy"
+                        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </div>
+                    <div class="px-3 py-3">
+                      <p class="text-xs font-medium text-slate-800 line-clamp-1 group-hover:text-slate-950 transition-colors">
+                        {img.title ?? 'Untitled'}
+                      </p>
+                      <p class="mt-1 text-[10px] font-mono text-slate-500">
+                        {new Date(img.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </p>
+                    </div>
+                  </a>
+                ))}
+                <a
+                  href="/visions"
+                  class="flex-none w-44 rounded-lg border border-dashed border-slate-300 bg-slate-50 hover:border-red-300 flex flex-col items-center justify-center gap-2 p-4 text-center text-slate-500 hover:text-red-500 transition-all duration-200"
+                  style="scroll-snap-align:start; min-height:160px"
+                >
+                  <span class="text-2xl">All</span>
+                  <span class="text-xs font-mono">View archive</span>
+                </a>
+              </div>
+            )}
+          </section>
+        )}
+
         <div>
           <h2 class="text-2xl font-bold text-slate-900 mb-4">Latest Analysis</h2>
           <div class="space-y-3">
@@ -150,7 +231,6 @@ const stats = latestSnapshot ? {
           </div>
         </div>
 
-        {/* BLOG POSTS */}
         <div>
           <h2 class="text-2xl font-bold text-slate-900 mb-4">Research & Commentary</h2>
           <div class="space-y-3">
@@ -166,7 +246,6 @@ const stats = latestSnapshot ? {
           </div>
         </div>
 
-        {/* CHART - MINIMIZED */}
         <div>
           <h2 class="text-2xl font-bold text-slate-900 mb-4">90-Day Performance</h2>
           <div class="bg-white border border-slate-200 rounded-lg p-4">
@@ -175,14 +254,13 @@ const stats = latestSnapshot ? {
         </div>
       </div>
 
-      {/* RIGHT COLUMN: NEWS FEED */}
       <div class="lg:col-span-1">
         <div class="lg:sticky lg:top-4">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-xl font-bold text-slate-900">Market Signals</h2>
             <span class="text-xs font-medium text-accent-blue uppercase tracking-wide">Live Feed</span>
           </div>
-          
+
           <div class="space-y-3 max-h-[calc(100vh-150px)] overflow-y-auto pr-2">
             {newsArticles?.map(article => (
               <NewsCard
@@ -196,7 +274,6 @@ const stats = latestSnapshot ? {
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </Layout>
