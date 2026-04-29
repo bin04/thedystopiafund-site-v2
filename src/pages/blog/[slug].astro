@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { createClient } from '@supabase/supabase-js';
+import { marked } from 'marked';
 
 // This function tells Astro which pages to generate at build time
 export async function getStaticPaths() {
@@ -36,6 +37,8 @@ const { data: post } = await supabase
 if (!post) {
   return Astro.redirect('/404');
 }
+
+const renderedContent = marked.parse(post.content ?? '');
 ---
 
 <Layout title={`${post.title} - The Dystopia Fund`} darkMode={true}>
@@ -55,10 +58,8 @@ if (!post) {
       </div>
     </header>
 
-    <div class="prose prose-invert prose-lg max-w-none">
-      <div class="text-gray-300 leading-relaxed whitespace-pre-wrap">
-        {post.content}
-      </div>
+    <div class="prose prose-invert prose-lg max-w-none prose-headings:text-white prose-p:text-gray-300 prose-strong:text-white prose-li:text-gray-300 prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-hr:border-gray-800">
+      <div class="text-gray-300 leading-relaxed" set:html={renderedContent}></div>
     </div>
 
     <footer class="mt-12 pt-8 border-t border-gray-800">

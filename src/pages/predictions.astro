@@ -75,6 +75,72 @@ function percent(value, digits = 1) {
   if (!Number.isFinite(n)) return null;
   return `${(n * 100).toFixed(digits)}%`;
 }
+
+function pickLargestTrade(rawData) {
+  const direct = Number(rawData?.largest_trade_usd ?? rawData?.notable_trade?.notional_usd);
+  if (Number.isFinite(direct) && direct > 0) return direct;
+
+  const recentTrades = Array.isArray(rawData?.recent_trades) ? rawData.recent_trades : [];
+  const fromTrades = recentTrades.reduce((max, trade) => {
+    const notional = Number(trade?.size || 0) * Number(trade?.price || 0);
+    return Number.isFinite(notional) && notional > max ? notional : max;
+  }, 0);
+
+  return fromTrades > 0 ? fromTrades : null;
+}
+
+function pickVolume24h(rawData) {
+  const direct = Number(rawData?.volume24hr);
+  if (Number.isFinite(direct)) return direct;
+
+  const nested = Number(rawData?.market?.volume24hr ?? rawData?.market?.volume24hrClob);
+  return Number.isFinite(nested) ? nested : null;
+}
+
+function pickOneWeekRepricing(rawData) {
+  const direct = Number(rawData?.one_week_price_change);
+  if (Number.isFinite(direct)) return direct;
+
+  const nested = Number(rawData?.market?.oneWeekPriceChange);
+  return Number.isFinite(nested) ? nested : null;
+}
+
+function pickDominantOutcome(rawData) {
+  if (rawData?.dominant_outcome) return rawData.dominant_outcome;
+
+  const market = rawData?.market;
+  if (!market) return null;
+
+  let outcomes = [];
+  let outcomePrices = [];
+
+  try {
+    outcomes = Array.isArray(market.outcomes) ? market.outcomes : JSON.parse(market.outcomes || '[]');
+  } catch {
+    outcomes = [];
+  }
+
+  try {
+    outcomePrices = Array.isArray(market.outcomePrices)
+      ? market.outcomePrices.map((value) => Number(value))
+      : JSON.parse(market.outcomePrices || '[]').map((value) => Number(value));
+  } catch {
+    outcomePrices = [];
+  }
+
+  if (!outcomes.length || !outcomePrices.length) return null;
+
+  let maxIndex = -1;
+  let maxValue = -Infinity;
+  outcomePrices.forEach((value, index) => {
+    if (Number.isFinite(value) && value > maxValue) {
+      maxValue = value;
+      maxIndex = index;
+    }
+  });
+
+  return maxIndex >= 0 ? outcomes[maxIndex] : null;
+}
 ---
 
 <Layout title="Predictions | The Dystopia Fund">
@@ -173,19 +239,19 @@ function percent(value, digits = 1) {
               </div>
               <div class="flex items-center justify-between gap-4">
                 <dt class="text-sm text-slate-500">Largest trade</dt>
-                <dd class="text-base font-semibold text-slate-900">{money(lead.raw_data?.largest_trade_usd ?? lead.raw_data?.notable_trade?.notional_usd) ?? 'n/a'}</dd>
+                <dd class="text-base font-semibold text-slate-900">{money(pickLargestTrade(lead.raw_data)) ?? 'n/a'}</dd>
               </div>
               <div class="flex items-center justify-between gap-4">
                 <dt class="text-sm text-slate-500">24h volume</dt>
-                <dd class="text-base font-semibold text-slate-900">{money(lead.raw_data?.volume24hr) ?? 'n/a'}</dd>
+                <dd class="text-base font-semibold text-slate-900">{money(pickVolume24h(lead.raw_data)) ?? 'n/a'}</dd>
               </div>
               <div class="flex items-center justify-between gap-4">
                 <dt class="text-sm text-slate-500">1w repricing</dt>
-                <dd class="text-base font-semibold text-slate-900">{percent(lead.raw_data?.one_week_price_change) ?? 'n/a'}</dd>
+                <dd class="text-base font-semibold text-slate-900">{percent(pickOneWeekRepricing(lead.raw_data)) ?? 'n/a'}</dd>
               </div>
               <div class="flex items-center justify-between gap-4">
                 <dt class="text-sm text-slate-500">Dominant outcome</dt>
-                <dd class="text-base font-semibold text-slate-900">{lead.raw_data?.dominant_outcome ?? 'n/a'}</dd>
+                <dd class="text-base font-semibold text-slate-900">{pickDominantOutcome(lead.raw_data) ?? 'n/a'}</dd>
               </div>
             </dl>
           </aside>
@@ -244,23 +310,23 @@ function percent(value, digits = 1) {
                   <div class="rounded-md bg-slate-50 px-3 py-2">
                     <div class="text-[11px] uppercase tracking-wide text-slate-500">Largest Trade</div>
                     <div class="mt-1 text-sm font-semibold text-slate-900">
-                      {money(item.raw_data?.largest_trade_usd ?? item.raw_data?.notable_trade?.notional_usd) ?? 'n/a'}
+                      {money(pickLargestTrade(item.raw_data)) ?? 'n/a'}
                     </div>
                   </div>
                   <div class="rounded-md bg-slate-50 px-3 py-2">
                     <div class="text-[11px] uppercase tracking-wide text-slate-500">1W Move</div>
                     <div class="mt-1 text-sm font-semibold text-slate-900">
-                      {percent(item.raw_data?.one_week_price_change) ?? 'n/a'}
+                      {percent(pickOneWeekRepricing(item.raw_data)) ?? 'n/a'}
                     </div>
                   </div>
                 </div>
               </div>
 
               <div class="mt-4 flex flex-wrap items-center gap-4 text-sm">
-                {item.raw_data?.dominant_outcome && (
+                {pickDominantOutcome(item.raw_data) && (
                   <span class="text-slate-500">
                     Dominant outcome:
-                    <span class="ml-1 font-semibold text-slate-800">{item.raw_data.dominant_outcome}</span>
+                    <span class="ml-1 font-semibold text-slate-800">{pickDominantOutcome(item.raw_data)}</span>
                   </span>
                 )}
                 {item.raw_data?.recent_trade_count != null && (

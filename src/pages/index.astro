@@ -50,6 +50,7 @@ function visionImg(url: string, width = 900) {
 
 const featuredImage = generatedImages?.[0] ?? null;
 const scrollerImages = generatedImages ?? [];
+const featuredImageHref = featuredImage?.slug ? `/news/${featuredImage.slug}` : '/visions';
 
 const { data: newsArticles } = await supabase
   .from('news_articles_dystopia')
@@ -157,7 +158,7 @@ const stats = latestSnapshot ? {
             </div>
 
             <a
-              href="/visions"
+              href={featuredImageHref}
               class="group block overflow-hidden rounded-lg border border-slate-200 bg-slate-950 shadow-sm"
             >
               <div class="relative aspect-[16/10] overflow-hidden">

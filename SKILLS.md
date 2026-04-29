@@ -7,6 +7,7 @@ Verified:
 - Framework: Astro
 - Styling: Tailwind CSS
 - Data access on pages currently uses `@supabase/supabase-js`
+- Markdown article rendering currently uses the `marked` package on the server side for `blog` and `news` detail pages.
 - Build command: `npm run build`
 - Development server command: `npm run dev`
 

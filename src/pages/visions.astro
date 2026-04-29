@@ -56,14 +56,24 @@ const hasMore = images.length === 12;
           >
             {/* IMAGE */}
             <div class="relative aspect-video overflow-hidden bg-slate-800">
-              <img
-                src={img.image_url}
-                alt={img.title ?? 'Dystopian vision'}
-                loading="lazy"
-                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
+              <a
+                href={img.image_url}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                class="block h-full w-full"
+                aria-label={`Download ${img.title ?? 'dystopian vision'}`}
+                title="Open or download full image"
+              >
+                <img
+                  src={img.image_url}
+                  alt={img.title ?? 'Dystopian vision'}
+                  loading="lazy"
+                  class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+              </a>
               {/* Gradient overlay */}
-              <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-70"></div>
+              <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-70"></div>
             </div>
 
             {/* CARD BODY */}
@@ -156,6 +166,7 @@ const hasMore = images.length === 12;
     const date = new Date(img.created_at).toLocaleDateString('en-US', {
       month: 'short', day: 'numeric', year: 'numeric'
     });
+    const imageTitle = img.title ?? 'Untitled Vision';
     const promptSnippet = img.prompt
       ? img.prompt.slice(0, 120) + (img.prompt.length > 120 ? '…' : '')
       : '';
@@ -166,13 +177,15 @@ const hasMore = images.length === 12;
     return `
       <article class="group relative bg-slate-900 rounded-xl overflow-hidden border border-slate-800 hover:border-red-900/60 transition-all duration-300 hover:shadow-2xl hover:shadow-red-950/30 hover:-translate-y-0.5" data-id="${img.id}">
         <div class="relative aspect-video overflow-hidden bg-slate-800">
-          <img src="${img.image_url}" alt="${img.title ?? 'Dystopian vision'}" loading="lazy"
-            class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-          <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-70"></div>
+          <a href="${img.image_url}" download target="_blank" rel="noopener noreferrer" class="block h-full w-full" aria-label="Download ${imageTitle}" title="Open or download full image">
+            <img src="${img.image_url}" alt="${imageTitle}" loading="lazy"
+              class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+          </a>
+          <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-70"></div>
         </div>
         <div class="p-4">
           <h2 class="text-white font-semibold text-sm leading-snug mb-1 line-clamp-2 group-hover:text-red-300 transition-colors">
-            ${img.title ?? 'Untitled Vision'}
+            ${imageTitle}
           </h2>
           <div class="flex items-center justify-between mt-3">
             <time class="text-slate-500 text-xs font-mono">${date}</time>

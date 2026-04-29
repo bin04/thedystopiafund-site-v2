@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { createClient } from '@supabase/supabase-js';
+import { marked } from 'marked';
 
 // This function tells Astro which pages to generate at build time
 export async function getStaticPaths() {
@@ -33,13 +34,42 @@ const { data: post } = await supabase
   .eq('is_published', true)
   .single();
 
+const { data: linkedImage } = await supabase
+  .from('generated_images')
+  .select('title, image_url')
+  .eq('slug', slug)
+  .eq('is_published', true)
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .maybeSingle();
+
 if (!post) {
   return Astro.redirect('/404');
 }
+
+function visionImg(url: string, width = 1600) {
+  if (!url) return url;
+  return url
+    .replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')
+    + `?width=${width}&quality=76&format=webp`;
+}
+
+const renderedContent = marked.parse(post.content ?? '');
 ---
 
 <Layout title={`${post.title} - The Dystopia Fund`} darkMode={true}>
   <article class="max-w-4xl mx-auto px-4 py-8">
+    {linkedImage?.image_url && (
+      <figure class="mb-8 overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
+        <img
+          src={visionImg(linkedImage.image_url)}
+          alt={linkedImage.title ?? post.title}
+          class="h-auto w-full object-cover"
+          loading="eager"
+        />
+      </figure>
+    )}
+
     <header class="mb-8">
       <h1 class="text-4xl font-bold text-white mb-4">{post.title}</h1>
       <div class="flex items-center gap-4 text-gray-400 text-sm">
@@ -55,10 +85,8 @@ if (!post) {
       </div>
     </header>
 
-    <div class="prose prose-invert prose-lg max-w-none">
-      <div class="text-gray-300 leading-relaxed whitespace-pre-wrap">
-        {post.content}
-      </div>
+    <div class="prose prose-invert prose-lg max-w-none prose-headings:text-white prose-p:text-gray-300 prose-strong:text-white prose-li:text-gray-300 prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-hr:border-gray-800">
+      <div class="text-gray-300 leading-relaxed" set:html={renderedContent}></div>
     </div>
 
     <footer class="mt-12 pt-8 border-t border-gray-800">
